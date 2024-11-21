@@ -5,10 +5,8 @@ import asyncio
 from datetime import datetime, timedelta
 import urllib.parse
 from time import sleep
-
-
-
-import requests
+import gzip
+import io
 
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
@@ -32,14 +30,19 @@ def fetch_data_from_nse(url, cookies=None):
         print(f"Status Code: {response.status_code} for URL: {url}")
         print(f"Response Content-Type: {response.headers.get('Content-Type')}")
         
-        # Ensure the encoding is correct
-        response.encoding = response.apparent_encoding
+        # Check if the content is gzipped and decompress it if necessary
+        if 'gzip' in response.headers.get('Content-Encoding', ''):
+            print("Gzipped content detected, decompressing...")
+            buf = io.BytesIO(response.content)
+            f = gzip.GzipFile(fileobj=buf)
+            response_text = f.read().decode('utf-8')
+        else:
+            response_text = response.text
         
-        # Print out response text to inspect what is returned
-        print("Response Text:", response.text[:500])  # Only printing first 500 characters to avoid long output
+        print("Response Text (First 500 chars):", response_text[:500])  # Only printing first 500 characters to avoid long output
 
+        # Check if the response contains JSON
         if 'application/json' in response.headers.get('Content-Type', ''):
-            # Try to decode the JSON
             return response.json() if response.status_code == 200 else None
         else:
             print(f"Unexpected content type: {response.headers.get('Content-Type')}")
@@ -49,9 +52,7 @@ def fetch_data_from_nse(url, cookies=None):
         return None
     except ValueError as e:
         print(f"Error decoding JSON for {url}: {e}")
-        print(f"Response Text: {response.text}")
         return None
-
 
 
 # Fetch sector names
