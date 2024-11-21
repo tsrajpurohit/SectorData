@@ -17,8 +17,16 @@ def fetch_data_from_nse(url, cookies=None):
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive"
     }
-     try:
-        response = requests.get(url, headers=headers, timeout=10)
+
+    try:
+        if not cookies:
+            homepage_response = requests.get(homepage_url, headers=homepage_headers)
+            if homepage_response.status_code == 200:
+                cookies = homepage_response.cookies
+            else:
+                raise Exception("Error receiving cookies from homepage.")
+        
+        response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
         response.raise_for_status()  # Raise HTTPError for non-2xx responses
         return response.json()
     except requests.exceptions.HTTPError as e:
