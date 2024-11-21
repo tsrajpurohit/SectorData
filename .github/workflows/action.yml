@@ -34,9 +34,6 @@ jobs:
       - name: Run scraping script
         run: |
           python NewSectorScanner.py
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: List files after running script
         run: |
