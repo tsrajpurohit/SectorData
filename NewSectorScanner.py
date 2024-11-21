@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import requests
 import pandas as pd
 import aiohttp
@@ -8,7 +11,6 @@ from time import sleep
 
 
 # Utility function to fetch data from NSE API
-
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
     homepage_headers = {
@@ -18,25 +20,6 @@ def fetch_data_from_nse(url, cookies=None):
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive"
     }
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()  # Raises HTTPError for bad responses (4xx, 5xx)
-        
-        # Log response for debugging
-        print(f"Response status code: {response.status_code}")
-        print(f"Response content: {response.text[:500]}")  # Print the first 500 characters
-        
-        # Attempt to parse JSON
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.RequestException as req_err:
-        print(f"Request exception: {req_err}")
-    except ValueError as json_err:
-        print(f"JSON decode error: {json_err}, Response content: {response.text[:500]}")
-    
-    return None  # Return None if an error occurs
     
     # Fetch cookies if not provided
     if not cookies:
