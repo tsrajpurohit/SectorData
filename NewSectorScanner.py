@@ -30,16 +30,29 @@ def fetch_data_from_nse(url, cookies=None):
             raise Exception("Error receiving cookies from homepage.")
     
     # Make the request to the provided URL with cookies
-    response = requests.get(url, headers=homepage_headers, cookies=cookies)
-    print(f"Status Code: {response.status_code}")
-    print(f"Response Text: {response.text}")
-    return response.json() if response.status_code == 200 else None
-
+    try:
+        response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
+        print(f"Status Code: {response.status_code} for URL: {url}")
+        if 'application/json' in response.headers.get('Content-Type', ''):
+            return response.json() if response.status_code == 200 else None
+        else:
+            print(f"Unexpected content type: {response.headers.get('Content-Type')}")
+            print(response.text)
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error during request for {url}: {e}")
+        return None
+    except ValueError as e:
+        print(f"Error decoding JSON for {url}: {e}")
+        print(f"Response Text: {response.text}")
+        return None
 
 
 # Fetch sector names
 def get_sector_names():
     index_res = fetch_data_from_nse("https://www.nseindia.com/api/equity-master")
+    if not index_res:
+        raise Exception("Failed to fetch sector data.")
     sector_names = []
     for _, sector in index_res.items():
         sector_names.extend(sector)
@@ -54,12 +67,13 @@ def fetch_sector_data(sector_names):
     for sector, url in url_list.items():
         try:
             sector_data = fetch_data_from_nse(url)
-            sector_df = pd.json_normalize(sector_data['data'])
-            sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
-            sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
-            sector_df.columns = ["symbol", "series", "lastPrice", "industry", "isin"]
-            sector_df['indexSector'] = sector
-            sector_df_list.append(sector_df)
+            if sector_data:
+                sector_df = pd.json_normalize(sector_data['data'])
+                sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
+                sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
+                sector_df.columns = ["symbol", "series", "lastPrice", "industry", "isin"]
+                sector_df['indexSector'] = sector
+                sector_df_list.append(sector_df)
         except Exception as e:
             print(f"Error fetching data for {sector}: {e}")
     
@@ -69,8 +83,15 @@ def fetch_sector_data(sector_names):
 # Fetch master stock data from Upstox
 def fetch_master_stock_data():
     file_url = 'https://assets.upstox.com/market-quote/instruments/exchange/complete.csv.gz'
-    master_df = pd.read_csv(file_url)
+    try:
+        master_df = pd.read_csv(file_url)
+    except Exception as e:
+        print(f"Error fetching master stock data: {e}")
+        return pd.DataFrame()  # Return empty DataFrame if error occurs
+    
     return master_df[(master_df.exchange == 'NSE_EQ') & (master_df.lot_size == 1) & (master_df.last_price > 0)]
+
+
 
 
 # Filter stocks based on sector symbols
