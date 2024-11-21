@@ -8,6 +8,7 @@ from time import sleep
 
 
 # Utility function to fetch data from NSE API
+# Utility function to fetch data from NSE API
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
     homepage_headers = {
@@ -44,7 +45,6 @@ def fetch_data_from_nse(url, cookies=None):
 
 
 # Fetch sector names
-# Fetch sector names
 def get_sector_names():
     index_res = fetch_data_from_nse("https://www.nseindia.com/api/equity-master")
     if index_res is None:
@@ -57,7 +57,6 @@ def get_sector_names():
     return sector_names[:-2]  # Assuming last two entries need to be excluded
 
 
-
 # Fetch stock data for each sector and create a DataFrame
 def fetch_sector_data(sector_names):
     url_list = {sector: f'https://www.nseindia.com/api/equity-stockIndices?index={urllib.parse.quote(sector)}' for sector in sector_names}
@@ -66,6 +65,10 @@ def fetch_sector_data(sector_names):
     for sector, url in url_list.items():
         try:
             sector_data = fetch_data_from_nse(url)
+            if sector_data is None:
+                print(f"Failed to fetch data for sector: {sector}")
+                continue
+
             sector_df = pd.json_normalize(sector_data['data'])
             sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
             sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
@@ -100,7 +103,7 @@ async def get_historical_data(symbol, instrument_key):
             to_date = datetime.strftime(today, '%Y-%m-%d')
             from_date = datetime.strftime(today - timedelta(days=100), '%Y-%m-%d')
             url = f'https://api.upstox.com/v2/historical-candle/{instrument}/day/{to_date}/{from_date}'
-            
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers={'accept': 'application/json'}) as response:
                     candle_res = await response.json()
