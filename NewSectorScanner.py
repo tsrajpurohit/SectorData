@@ -74,20 +74,26 @@ def fetch_sector_data(sector_names):
     sector_df_list = []
     
     for sector, url in url_list.items():
-        try:
-            sector_data = fetch_with_retry(url)
-            if sector_data is None:
-                print(f"Failed to fetch data for sector: {sector}")
-                continue
+    try:
+        print(f"Fetching data for sector: {sector} using URL: {url}")
+        sector_data = fetch_with_retry(url)
+        if not sector_data:
+            print(f"Failed to fetch data for sector: {sector}")
+            continue
 
-            sector_df = pd.json_normalize(sector_data['data'])
-            sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
-            sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
-            sector_df.columns = ["symbol", "series", "lastPrice", "industry", "isin"]
-            sector_df['indexSector'] = sector
-            sector_df_list.append(sector_df)
-        except Exception as e:
-            print(f"Error fetching data for {sector}: {e}")
+        sector_df = pd.json_normalize(sector_data['data'])
+        if sector_df.empty:
+            print(f"No data available for sector: {sector}")
+            continue
+
+        sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
+        sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
+        sector_df.columns = ["symbol", "series", "lastPrice", "industry", "isin"]
+        sector_df['indexSector'] = sector
+        sector_df_list.append(sector_df)
+    except Exception as e:
+        print(f"Error processing sector {sector}: {e}")
+
     
     return pd.concat(sector_df_list, ignore_index=True)
 
