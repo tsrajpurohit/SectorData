@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import requests
 import pandas as pd
 import aiohttp
@@ -5,67 +8,39 @@ import asyncio
 from datetime import datetime, timedelta
 import urllib.parse
 from time import sleep
-import os
-import logging
-# Configure logging
-logging.basicConfig(
-    filename="sector_scanner.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+
+
 # Utility function to fetch data from NSE API
-def fetch_with_retry(url, max_retries=3):
+def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
-    headers = {
+    homepage_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
         "Referer": homepage_url,
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
+        "Connection": "keep-alive"
     }
     
-    cookies = None
-    try:
-        # Fetch cookies from NSE homepage
-        homepage_response = requests.get(homepage_url, headers=headers)
+    # Fetch cookies if not provided
+    if not cookies:
+        homepage_response = requests.get(homepage_url, headers=homepage_headers)
         if homepage_response.status_code == 200:
             cookies = homepage_response.cookies
         else:
-            raise Exception("Failed to fetch cookies from NSE homepage.")
-    except Exception as e:
-        logging.error(f"Error fetching cookies: {e}")
-        return None
-
-    for attempt in range(max_retries):
-        try:
-            response = requests.get(url, headers=headers, cookies=cookies)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logging.warning(f"Attempt {attempt + 1} failed with status {response.status_code}")
-        except requests.exceptions.JSONDecodeError:
-            logging.error("Response content is not JSON. Saving raw response for debugging.")
-            with open("raw_response.html", "wb") as f:
-                f.write(response.content)
-            return None
-        except Exception as e:
-            logging.warning(f"Attempt {attempt + 1} failed: {e}")
-        sleep(2)  # Wait before retrying
-    raise Exception("All retries failed.")
+            raise Exception("Error receiving cookies from homepage.")
+    
+    # Make the request to the provided URL with cookies
+    response = requests.get(url, headers=homepage_headers, cookies=cookies)
+    return response.json() if response.status_code == 200 else None
 
 
- 
 # Fetch sector names
 def get_sector_names():
-    index_res = fetch_with_retry("https://www.nseindia.com/api/equity-master")
-    if index_res is None:
-        print("Failed to fetch sector data.")
-        return []
-    
+    index_res = fetch_data_from_nse("https://www.nseindia.com/api/equity-master")
     sector_names = []
     for _, sector in index_res.items():
         sector_names.extend(sector)
-    return sector_names[:-2]  # Assuming last two entries need to be excluded
+    return sector_names[:-2]
 
 
 # Fetch stock data for each sector and create a DataFrame
@@ -75,32 +50,17 @@ def fetch_sector_data(sector_names):
     
     for sector, url in url_list.items():
         try:
-            print(f"Fetching data for sector: {sector} using URL: {url}")
-            sector_data = fetch_with_retry(url)
-            if not sector_data:
-                print(f"Failed to fetch data for sector: {sector}")
-                continue
-
+            sector_data = fetch_data_from_nse(url)
             sector_df = pd.json_normalize(sector_data['data'])
-            if sector_df.empty:
-                print(f"No data available for sector: {sector}")
-                continue
-
             sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
             sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
             sector_df.columns = ["symbol", "series", "lastPrice", "industry", "isin"]
             sector_df['indexSector'] = sector
             sector_df_list.append(sector_df)
         except Exception as e:
-            print(f"Error processing sector {sector}: {e}")
-
-    # Handle empty DataFrame list gracefully
-    if not sector_df_list:
-        print("No sector data was successfully fetched.")
-        return pd.DataFrame()  # Return an empty DataFrame instead of causing an error
-
+            print(f"Error fetching data for {sector}: {e}")
+    
     return pd.concat(sector_df_list, ignore_index=True)
-
 
 
 # Fetch master stock data from Upstox
@@ -125,7 +85,7 @@ async def get_historical_data(symbol, instrument_key):
             to_date = datetime.strftime(today, '%Y-%m-%d')
             from_date = datetime.strftime(today - timedelta(days=100), '%Y-%m-%d')
             url = f'https://api.upstox.com/v2/historical-candle/{instrument}/day/{to_date}/{from_date}'
-
+            
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers={'accept': 'application/json'}) as response:
                     candle_res = await response.json()
@@ -256,8 +216,5 @@ async def main():
 
 # Run the script
 if __name__ == "__main__":
-    output_dir = "./output"
-    os.makedirs(output_dir, exist_ok=True)
-    
     asyncio.run(main())
 
