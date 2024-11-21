@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import requests
 import pandas as pd
 import aiohttp
@@ -11,15 +8,32 @@ from time import sleep
 
 
 # Utility function to fetch data from NSE API
-def fetch_data_from_nse(url, cookies=None):
-    homepage_url = "https://www.nseindia.com/"
-    homepage_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
-        "Referer": homepage_url,
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive"
+
+def fetch_data_from_nse(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36",
+        "Accept": "application/json",
+        "Referer": "https://www.nseindia.com"
     }
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raises HTTPError for bad responses (4xx, 5xx)
+        
+        # Log response for debugging
+        print(f"Response status code: {response.status_code}")
+        print(f"Response content: {response.text[:500]}")  # Print the first 500 characters
+        
+        # Attempt to parse JSON
+        return response.json()
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"Request exception: {req_err}")
+    except ValueError as json_err:
+        print(f"JSON decode error: {json_err}, Response content: {response.text[:500]}")
+    
+    return None  # Return None if an error occurs
     
     # Fetch cookies if not provided
     if not cookies:
