@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/3 * * * *'  # Runs every 10 minutes
+    - cron: '*/60 * * * *'  # Runs every 60 minutes
   workflow_dispatch:  # Allows manual trigger
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -34,7 +34,10 @@ jobs:
       - name: Run scraping script
         run: |
           python NewSectorScanner.py
-        
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
       - name: List files after running script
         run: |
           echo "Listing files after running the script"
@@ -61,4 +64,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      
+      - name: Upload csv files as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkedin-joblist-json
+          path: "*.json"
