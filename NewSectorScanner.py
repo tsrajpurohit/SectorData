@@ -7,6 +7,8 @@ import urllib.parse
 from time import sleep
 import gzip
 import io
+import brotli
+import json
 
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
@@ -28,11 +30,14 @@ def fetch_data_from_nse(url, cookies=None):
     try:
         response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
         
-        # Log headers for debugging
-        print(f"Response Headers: {response.headers}")
+        # Check the response headers for Content-Encoding
+        content_encoding = response.headers.get('Content-Encoding', '')
         
-        # Check if the content is gzipped and decompress it if necessary
-        if 'gzip' in response.headers.get('Content-Encoding', ''):
+        if 'br' in content_encoding:
+            print("Brotli compressed content detected, decompressing...")
+            # Decompress Brotli data
+            response_text = brotli.decompress(response.content).decode('utf-8')
+        elif 'gzip' in content_encoding:
             print("Gzipped content detected, decompressing...")
             buf = io.BytesIO(response.content)
             f = gzip.GzipFile(fileobj=buf)
@@ -42,17 +47,14 @@ def fetch_data_from_nse(url, cookies=None):
         
         print(f"Response Text (First 500 chars): {response_text[:500]}")  # Only printing first 500 characters
         
-        # Check if the response contains JSON
-        if 'application/json' in response.headers.get('Content-Type', ''):
-            return response.json() if response.status_code == 200 else None
-        else:
-            print(f"Unexpected content type: {response.headers.get('Content-Type')}")
+        # Try parsing the response text as JSON
+        try:
+            return json.loads(response_text)  # parse the JSON response
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON for {url}: {e}")
             return None
     except requests.exceptions.RequestException as e:
         print(f"Error during request for {url}: {e}")
-        return None
-    except ValueError as e:
-        print(f"Error decoding JSON for {url}: {e}")
         return None
 
 
