@@ -7,6 +7,12 @@ import urllib.parse
 from time import sleep
 import os
 
+# Configure logging
+logging.basicConfig(
+    filename="sector_scanner.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 # Utility function to fetch data from NSE API
 def fetch_with_retry(url, cookies=None, retries=5, delay=1):
     homepage_url = "https://www.nseindia.com/"
@@ -46,7 +52,7 @@ def fetch_with_retry(url, cookies=None, retries=5, delay=1):
  
 # Fetch sector names
 def get_sector_names():
-    index_res = fetch_data_from_nse("https://www.nseindia.com/api/equity-master")
+    index_res = fetch_with_retry("https://www.nseindia.com/api/equity-master")
     if index_res is None:
         print("Failed to fetch sector data.")
         return []
@@ -64,7 +70,7 @@ def fetch_sector_data(sector_names):
     
     for sector, url in url_list.items():
         try:
-            sector_data = fetch_data_from_nse(url)
+            sector_data = fetch_with_retry(url)
             if sector_data is None:
                 print(f"Failed to fetch data for sector: {sector}")
                 continue
