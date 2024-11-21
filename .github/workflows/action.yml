@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/60 * * * *'  # Runs every 60 minutes
+    - cron: '0 * * * *'  # Runs at the top of every hour
   workflow_dispatch:  # Allows manual trigger
 
 jobs:
@@ -43,10 +43,6 @@ jobs:
           echo "Listing files after running the script"
           ls -la
 
-      - name: Check Git status
-        run: |
-          git status
-
       - name: Commit files
         run: |
           git config --local user.email "action@github.com"
@@ -67,5 +63,5 @@ jobs:
       - name: Upload csv files as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linkedin-joblist-json
-          path: "*.json"
+          name: csv-files
+          path: "*.csv"  # Updated to target CSV files
