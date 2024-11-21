@@ -9,11 +9,14 @@ from time import sleep
 
 # Utility function to fetch data from NSE API
 
-def fetch_data_from_nse(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36",
-        "Accept": "application/json",
-        "Referer": "https://www.nseindia.com"
+def fetch_data_from_nse(url, cookies=None):
+    homepage_url = "https://www.nseindia.com/"
+    homepage_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+        "Referer": homepage_url,
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive"
     }
     
     try:
