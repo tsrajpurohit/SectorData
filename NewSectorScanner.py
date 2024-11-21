@@ -31,7 +31,10 @@ def fetch_data_from_nse(url, cookies=None):
     
     # Make the request to the provided URL with cookies
     response = requests.get(url, headers=homepage_headers, cookies=cookies)
+    print(f"Status Code: {response.status_code}")
+    print(f"Response Text: {response.text}")
     return response.json() if response.status_code == 200 else None
+
 
 
 # Fetch sector names
