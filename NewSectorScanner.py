@@ -10,14 +10,13 @@ import os
 # Utility function to fetch data from NSE API
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
-   homepage_headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.5481.178 Safari/537.36",
-    "Accept": "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Referer": "https://www.nseindia.com/",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive"
-}
+    homepage_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+        "Referer": homepage_url,
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive"
+    }
 
     if not cookies:
         homepage_response = requests.get(homepage_url, headers=homepage_headers)
@@ -28,18 +27,18 @@ def fetch_data_from_nse(url, cookies=None):
 
     response = requests.get(url, headers=homepage_headers, cookies=cookies)
     if response.status_code == 200:
+        # Save the raw response content for debugging
+        with open("raw_response.html", "wb") as f:
+            f.write(response.content)
         try:
             return response.json()
         except requests.exceptions.JSONDecodeError:
-            print(f"Error decoding JSON: {response.text}")
+            print("Response content is not JSON. Saved to 'raw_response.html'.")
             raise
     else:
         print(f"Error fetching data: {response.status_code}, {response.text}")
         return None
-
-        
-    
-
+ 
 # Fetch sector names
 def get_sector_names():
     index_res = fetch_data_from_nse("https://www.nseindia.com/api/equity-master")
