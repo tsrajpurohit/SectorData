@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime, timedelta
 import urllib.parse
 from time import sleep
-
+import os
 
 # Utility function to fetch data from NSE API
 # Utility function to fetch data from NSE API
@@ -18,31 +18,18 @@ def fetch_data_from_nse(url, cookies=None):
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive"
     }
-
-    try:
-        # Fetch cookies if not provided
-        if not cookies:
-            homepage_response = requests.get(homepage_url, headers=homepage_headers)
-            if homepage_response.status_code == 200:
-                cookies = homepage_response.cookies
-            else:
-                raise Exception("Error receiving cookies from homepage.")
-        
-        # Make the request to the provided URL with cookies
-        response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
-        response.raise_for_status()  # Raise HTTPError for non-2xx responses
-        
-        return response.json()  # Return the JSON response if successful
     
-    except requests.exceptions.HTTPError as e:
-        print(f"HTTP error occurred: {e}")
-    except requests.exceptions.RequestException as e:
-        print(f"Request exception: {e}")
-    except ValueError:
-        print("Failed to parse JSON response.")
+    if not cookies:
+        homepage_response = requests.get(homepage_url, headers=homepage_headers)
+        if homepage_response.status_code == 200:
+            cookies = homepage_response.cookies
+        else:
+            raise Exception("Error receiving cookies from homepage.")
     
-    return None  # Return None if an error occurs
-
+    response = requests.get(url, headers=homepage_headers, cookies=cookies)
+    return response.json() if response.status_code == 200 else None
+        
+    
 
 # Fetch sector names
 def get_sector_names():
@@ -234,5 +221,8 @@ async def main():
 
 # Run the script
 if __name__ == "__main__":
+    output_dir = "./output"
+    os.makedirs(output_dir, exist_ok=True)
+    
     asyncio.run(main())
 
