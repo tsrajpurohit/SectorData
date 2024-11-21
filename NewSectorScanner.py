@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import urllib.parse
 from time import sleep
 import os
-
+import logging
 # Configure logging
 logging.basicConfig(
     filename="sector_scanner.log",
