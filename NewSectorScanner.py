@@ -11,6 +11,8 @@ from time import sleep
 
 
 # Utility function to fetch data from NSE API
+import requests
+
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
     homepage_headers = {
@@ -18,10 +20,11 @@ def fetch_data_from_nse(url, cookies=None):
         "Referer": homepage_url,
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive"
+        "Connection": "keep-alive",
+        # Add this header if you're using an authenticated session
+        "Authorization": "Bearer YOUR_TOKEN_HERE"
     }
-    
-    # Fetch cookies if not provided
+
     if not cookies:
         homepage_response = requests.get(homepage_url, headers=homepage_headers)
         if homepage_response.status_code == 200:
@@ -29,15 +32,16 @@ def fetch_data_from_nse(url, cookies=None):
         else:
             raise Exception("Error receiving cookies from homepage.")
     
-    # Make the request to the provided URL with cookies
     try:
         response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
         print(f"Status Code: {response.status_code} for URL: {url}")
+        print(f"Response Content-Type: {response.headers.get('Content-Type')}")
+        # Print out response text to inspect what is returned
+        print("Response Text:", response.text[:500])  # Only printing first 500 characters to avoid long output
         if 'application/json' in response.headers.get('Content-Type', ''):
             return response.json() if response.status_code == 200 else None
         else:
             print(f"Unexpected content type: {response.headers.get('Content-Type')}")
-            print(response.text)
             return None
     except requests.exceptions.RequestException as e:
         print(f"Error during request for {url}: {e}")
@@ -48,11 +52,10 @@ def fetch_data_from_nse(url, cookies=None):
         return None
 
 
+
 # Fetch sector names
 def get_sector_names():
     index_res = fetch_data_from_nse("https://www.nseindia.com/api/equity-master")
-    if not index_res:
-        raise Exception("Failed to fetch sector data.")
     sector_names = []
     for _, sector in index_res.items():
         sector_names.extend(sector)
@@ -67,13 +70,12 @@ def fetch_sector_data(sector_names):
     for sector, url in url_list.items():
         try:
             sector_data = fetch_data_from_nse(url)
-            if sector_data:
-                sector_df = pd.json_normalize(sector_data['data'])
-                sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
-                sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
-                sector_df.columns = ["symbol", "series", "lastPrice", "industry", "isin"]
-                sector_df['indexSector'] = sector
-                sector_df_list.append(sector_df)
+            sector_df = pd.json_normalize(sector_data['data'])
+            sector_df = sector_df[sector_df.priority != 1]  # Filter priority stocks
+            sector_df = sector_df[["symbol", "series", "lastPrice", "meta.industry", "meta.isin"]]
+            sector_df.columns = ["symbol", "series", "lastPrice", "industry", "isin"]
+            sector_df['indexSector'] = sector
+            sector_df_list.append(sector_df)
         except Exception as e:
             print(f"Error fetching data for {sector}: {e}")
     
@@ -83,15 +85,8 @@ def fetch_sector_data(sector_names):
 # Fetch master stock data from Upstox
 def fetch_master_stock_data():
     file_url = 'https://assets.upstox.com/market-quote/instruments/exchange/complete.csv.gz'
-    try:
-        master_df = pd.read_csv(file_url)
-    except Exception as e:
-        print(f"Error fetching master stock data: {e}")
-        return pd.DataFrame()  # Return empty DataFrame if error occurs
-    
+    master_df = pd.read_csv(file_url)
     return master_df[(master_df.exchange == 'NSE_EQ') & (master_df.lot_size == 1) & (master_df.last_price > 0)]
-
-
 
 
 # Filter stocks based on sector symbols
