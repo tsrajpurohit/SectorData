@@ -8,38 +8,40 @@ from time import sleep
 import os
 
 # Utility function to fetch data from NSE API
-def fetch_data_from_nse(url, cookies=None):
+def fetch_with_retry(url, cookies=None, retries=5, delay=1):
     homepage_url = "https://www.nseindia.com/"
-    homepage_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:112.0) Gecko/20100101 Firefox/112.0",
         "Referer": homepage_url,
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
         "Connection": "keep-alive",
     }
-
     if not cookies:
-        homepage_response = requests.get(homepage_url, headers=homepage_headers)
+        homepage_response = requests.get(homepage_url, headers=headers)
         if homepage_response.status_code == 200:
             cookies = homepage_response.cookies
         else:
+            logging.error("Failed to fetch cookies from homepage.")
             raise Exception("Error receiving cookies from homepage.")
 
-    response = requests.get(url, headers=homepage_headers, cookies=cookies)
-    if response.status_code == 200:
-        # Save raw response for debugging
-        with open("raw_response.html", "wb") as f:
-            f.write(response.content)
+    for attempt in range(retries):
         try:
-            return response.json()
+            response = requests.get(url, headers=headers, cookies=cookies)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logging.warning(f"Attempt {attempt + 1}: HTTP {response.status_code}")
+                sleep(delay * (2 ** attempt))
         except requests.exceptions.JSONDecodeError:
-            print("Response content is not JSON. Check 'raw_response.html' for details.")
-            print(f"Headers: {response.headers}")
-            raise
-    else:
-        print(f"Error: HTTP {response.status_code}")
-        print(f"Response Text: {response.text}")
-        return None
+            with open("raw_response.html", "wb") as f:
+                f.write(response.content)
+            logging.error(f"JSONDecodeError: Saved raw response to 'raw_response.html'. URL: {url}")
+        except Exception as e:
+            logging.error(f"Error fetching data: {e}. URL: {url}")
+        sleep(delay * (2 ** attempt))
+    raise Exception("All retries failed.")
 
  
 # Fetch sector names
