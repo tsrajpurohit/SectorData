@@ -15,7 +15,7 @@ def fetch_data_from_nse(url, cookies=None):
         "Referer": homepage_url,
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive"
+        "Connection": "keep-alive",
     }
 
     if not cookies:
@@ -27,17 +27,20 @@ def fetch_data_from_nse(url, cookies=None):
 
     response = requests.get(url, headers=homepage_headers, cookies=cookies)
     if response.status_code == 200:
-        # Save the raw response content for debugging
+        # Save raw response for debugging
         with open("raw_response.html", "wb") as f:
             f.write(response.content)
         try:
             return response.json()
         except requests.exceptions.JSONDecodeError:
-            print("Response content is not JSON. Saved to 'raw_response.html'.")
+            print("Response content is not JSON. Check 'raw_response.html' for details.")
+            print(f"Headers: {response.headers}")
             raise
     else:
-        print(f"Error fetching data: {response.status_code}, {response.text}")
+        print(f"Error: HTTP {response.status_code}")
+        print(f"Response Text: {response.text}")
         return None
+
  
 # Fetch sector names
 def get_sector_names():
