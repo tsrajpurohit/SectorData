@@ -17,7 +17,18 @@ def fetch_data_from_nse(url, cookies=None):
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive"
     }
+     try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raise HTTPError for non-2xx responses
+        return response.json()
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error occurred: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Request exception: {e}")
+    except ValueError:
+        print("Failed to parse JSON response.")
     
+    return None
     # Fetch cookies if not provided
     if not cookies:
         homepage_response = requests.get(homepage_url, headers=homepage_headers)
