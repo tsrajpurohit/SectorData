@@ -8,7 +8,6 @@ from time import sleep
 import os
 
 # Utility function to fetch data from NSE API
-# Utility function to fetch data from NSE API
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
     homepage_headers = {
@@ -18,16 +17,25 @@ def fetch_data_from_nse(url, cookies=None):
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive"
     }
-    
+
     if not cookies:
         homepage_response = requests.get(homepage_url, headers=homepage_headers)
         if homepage_response.status_code == 200:
             cookies = homepage_response.cookies
         else:
             raise Exception("Error receiving cookies from homepage.")
-    
+
     response = requests.get(url, headers=homepage_headers, cookies=cookies)
-    return response.json() if response.status_code == 200 else None
+    if response.status_code == 200:
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError:
+            print(f"Error decoding JSON: {response.text}")
+            raise
+    else:
+        print(f"Error fetching data: {response.status_code}, {response.text}")
+        return None
+
         
     
 
