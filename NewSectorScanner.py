@@ -9,6 +9,8 @@ import gzip
 import io
 import brotli
 import json
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+import requests.exceptions
 
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
@@ -20,16 +22,37 @@ def fetch_data_from_nse(url, cookies=None):
         "Connection": "keep-alive"
     }
 
+    # Retry logic for fetching homepage cookies
     if not cookies:
-        homepage_response = requests.get(homepage_url, headers=homepage_headers)
-        if homepage_response.status_code == 200:
+        try:
+            homepage_response = requests.get(homepage_url, headers=homepage_headers)
+            homepage_response.raise_for_status()
             cookies = homepage_response.cookies
-        else:
-            raise Exception("Error receiving cookies from homepage.")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Error receiving cookies from homepage: {e}")
+    
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(5), retry=retry_if_exception_type(requests.exceptions.RequestException))
+    def get_response_with_retry():
+        try:
+            # Increase timeout to 30 seconds
+            response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=30)
+            
+            # Check if response status is OK
+            if response.status_code != 200:
+                print(f"Error: Received status code {response.status_code} from {url}")
+                return None
+
+            return response
+        except requests.exceptions.RequestException as e:
+            print(f"Transient network issue, retrying... Error: {e}")
+            raise e  # Re-raise the exception to trigger retry logic
     
     try:
-        response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
-        
+        response = get_response_with_retry()
+
+        if not response:
+            return None
+
         # Check the response headers for Content-Encoding
         content_encoding = response.headers.get('Content-Encoding', '')
         response_text = ''
@@ -48,7 +71,7 @@ def fetch_data_from_nse(url, cookies=None):
             f = gzip.GzipFile(fileobj=buf)
             response_text = f.read().decode('utf-8')
         else:
-            response_text = response.text
+            response_text = response.text  # Plain text or already decoded content
         
         print(f"Response Text (First 500 chars): {response_text[:500]}")  # Only printing first 500 characters
         
