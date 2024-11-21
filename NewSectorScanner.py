@@ -44,12 +44,18 @@ def fetch_data_from_nse(url, cookies=None):
 
 
 # Fetch sector names
+# Fetch sector names
 def get_sector_names():
     index_res = fetch_data_from_nse("https://www.nseindia.com/api/equity-master")
+    if index_res is None:
+        print("Failed to fetch sector data.")
+        return []
+    
     sector_names = []
     for _, sector in index_res.items():
         sector_names.extend(sector)
-    return sector_names[:-2]
+    return sector_names[:-2]  # Assuming last two entries need to be excluded
+
 
 
 # Fetch stock data for each sector and create a DataFrame
