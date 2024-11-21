@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import requests
 import pandas as pd
 import aiohttp
@@ -10,7 +7,7 @@ import urllib.parse
 from time import sleep
 
 
-# Utility function to fetch data from NSE API
+
 import requests
 
 def fetch_data_from_nse(url, cookies=None):
@@ -20,9 +17,7 @@ def fetch_data_from_nse(url, cookies=None):
         "Referer": homepage_url,
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        # Add this header if you're using an authenticated session
-        "Authorization": "Bearer YOUR_TOKEN_HERE"
+        "Connection": "keep-alive"
     }
 
     if not cookies:
@@ -36,9 +31,15 @@ def fetch_data_from_nse(url, cookies=None):
         response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
         print(f"Status Code: {response.status_code} for URL: {url}")
         print(f"Response Content-Type: {response.headers.get('Content-Type')}")
+        
+        # Ensure the encoding is correct
+        response.encoding = response.apparent_encoding
+        
         # Print out response text to inspect what is returned
         print("Response Text:", response.text[:500])  # Only printing first 500 characters to avoid long output
+
         if 'application/json' in response.headers.get('Content-Type', ''):
+            # Try to decode the JSON
             return response.json() if response.status_code == 200 else None
         else:
             print(f"Unexpected content type: {response.headers.get('Content-Type')}")
