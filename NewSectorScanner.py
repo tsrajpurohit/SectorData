@@ -31,13 +31,21 @@ def fetch_data_from_nse(url, cookies=None):
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error receiving cookies from homepage: {e}")
     
-    @retry(stop=stop_after_attempt(3), wait=wait_fixed(5), retry=retry_if_exception_type(requests.exceptions.RequestException))
+    # Retry decorator to handle retries on network issues and rate limiting
+    @retry(stop=stop_after_attempt(5), wait=wait_fixed(10), retry=retry_if_exception_type(requests.exceptions.RequestException))
     def get_response_with_retry():
         try:
-            # Increase timeout to 30 seconds
+            # Increase timeout to 30 seconds to handle network delays
             response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=30)
             
-            # Check if response status is OK
+            # Check for rate limiting (HTTP 429)
+            if response.status_code == 429:
+                print(f"Rate limit hit (429). Retrying after delay...")
+                retry_after = response.headers.get('Retry-After', 10)  # Default to 10 seconds if not present
+                time.sleep(int(retry_after))  # Sleep for the specified time
+                return None  # Return None to trigger a retry in the retry logic
+            
+            # Check if the response status is OK (200)
             if response.status_code != 200:
                 print(f"Error: Received status code {response.status_code} from {url}")
                 return None
@@ -54,7 +62,7 @@ def fetch_data_from_nse(url, cookies=None):
             return None
 
         # Check the response headers for Content-Encoding
-        content_encoding = response.headers.get('Content-Encoding', '')
+        content_encoding = response.headers.get('Content-Encoding', 'none')
         response_text = ''
         
         if 'br' in content_encoding:
