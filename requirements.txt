@@ -3,3 +3,4 @@ pandas
 aiohttp
 asyncio
 brotli
+tenacity
