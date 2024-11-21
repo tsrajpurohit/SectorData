@@ -27,8 +27,9 @@ def fetch_data_from_nse(url, cookies=None):
     
     try:
         response = requests.get(url, headers=homepage_headers, cookies=cookies, timeout=10)
-        print(f"Status Code: {response.status_code} for URL: {url}")
-        print(f"Response Content-Type: {response.headers.get('Content-Type')}")
+        
+        # Log headers for debugging
+        print(f"Response Headers: {response.headers}")
         
         # Check if the content is gzipped and decompress it if necessary
         if 'gzip' in response.headers.get('Content-Encoding', ''):
@@ -39,8 +40,8 @@ def fetch_data_from_nse(url, cookies=None):
         else:
             response_text = response.text
         
-        print("Response Text (First 500 chars):", response_text[:500])  # Only printing first 500 characters to avoid long output
-
+        print(f"Response Text (First 500 chars): {response_text[:500]}")  # Only printing first 500 characters
+        
         # Check if the response contains JSON
         if 'application/json' in response.headers.get('Content-Type', ''):
             return response.json() if response.status_code == 200 else None
@@ -53,6 +54,7 @@ def fetch_data_from_nse(url, cookies=None):
     except ValueError as e:
         print(f"Error decoding JSON for {url}: {e}")
         return None
+
 
 
 # Fetch sector names
