@@ -10,13 +10,14 @@ import os
 # Utility function to fetch data from NSE API
 def fetch_data_from_nse(url, cookies=None):
     homepage_url = "https://www.nseindia.com/"
-    homepage_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
-        "Referer": homepage_url,
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive"
-    }
+   homepage_headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.5481.178 Safari/537.36",
+    "Accept": "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Referer": "https://www.nseindia.com/",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive"
+}
 
     if not cookies:
         homepage_response = requests.get(homepage_url, headers=homepage_headers)
