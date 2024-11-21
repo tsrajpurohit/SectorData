@@ -61,8 +61,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload JSON files as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rss-feeds-json
-          path: "*.json"
+      
