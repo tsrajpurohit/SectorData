@@ -32,11 +32,16 @@ def fetch_data_from_nse(url, cookies=None):
         
         # Check the response headers for Content-Encoding
         content_encoding = response.headers.get('Content-Encoding', '')
+        response_text = ''
         
         if 'br' in content_encoding:
             print("Brotli compressed content detected, decompressing...")
-            # Decompress Brotli data
-            response_text = brotli.decompress(response.content).decode('utf-8')
+            try:
+                # Attempt to decompress using Brotli
+                response_text = brotli.decompress(response.content).decode('utf-8')
+            except brotli.error as e:
+                print(f"Brotli decompression failed: {e}")
+                response_text = response.text  # Fallback to plain text if Brotli fails
         elif 'gzip' in content_encoding:
             print("Gzipped content detected, decompressing...")
             buf = io.BytesIO(response.content)
@@ -56,7 +61,6 @@ def fetch_data_from_nse(url, cookies=None):
     except requests.exceptions.RequestException as e:
         print(f"Error during request for {url}: {e}")
         return None
-
 
 
 # Fetch sector names
